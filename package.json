@@ -1,0 +1,24 @@
+{
+  "name": "companion-cloud-client",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "ts-node src/index.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Håkon Nessjøen <haakon@bitfocus.io>",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^18.7.6",
+    "@types/socketcluster-client": "^16.0.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^4.7.4"
+  },
+  "dependencies": {
+    "axios": "^0.27.2",
+    "socketcluster-client": "^16.1.1"
+  }
+}
