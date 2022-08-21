@@ -26,6 +26,10 @@ interface CloudClientEvents {
     'log': (level: string, message: string) => void;
 }
 
+/**
+ * The CloudClient is responsible for connecting to the cloud and
+ * communicating with the companion server
+ */
 export class CloudClient extends (EventEmitter as { new(): StrictEventEmitter<EventEmitter, CloudClientEvents> }) {
     private companionId: string;
     private connections: CloudConnection[] = [];
@@ -38,6 +42,11 @@ export class CloudClient extends (EventEmitter as { new(): StrictEventEmitter<Ev
     private counter = 0;
     private moduleState: ModuleState = "IDLE";
     
+    /**
+     * Creates a new CloudClient
+     * 
+     * @param remoteCompanionId The super secret id to connect to via the cloud
+     */
     constructor(remoteCompanionId: string) {
         super();
         this.companionId = remoteCompanionId;
@@ -48,20 +57,42 @@ export class CloudClient extends (EventEmitter as { new(): StrictEventEmitter<Ev
         this.emit('state', state, message);
     }
 
-    private async recalculateRegions() {
+    private calculateState() {
+        const connected = this.connections.filter(c => c.connectionState === 'CONNECTED').length;
+        const connecting = this.connections.filter(c => c.connectionState === 'CONNECTING').length;
+        //const disconnected = this.connections.filter(c => c.connectionState === 'DISCONNECTED').length;
+        const wants = this.regions.length;
+
+        if (connected >= wants) {
+            this.setState('OK'); // TODO: only if remote companion is also OK
+        } else if (connected + connecting === 0) {
+            this.setState('ERROR', 'Not connecting');
+        } else if (connected === 0) {
+            this.setState('ERROR', 'No connections established');
+        } else if (connected < wants) {
+            this.setState('WARNING', `Only ${connected} of ${wants} connections established`);
+        }
+    }
+
+    private async updateRegionsFromREST() {
         const newRegions = await this.fetchRegionsFor(this.companionId);
         if (newRegions.length === 0) {
             this.emit('log', 'error', 'Remote companion does not seem to be registered with the cloud, retrying in 10 seconds');
-            setTimeout(() => this.recalculateRegions(), 10000);
+            setTimeout(() => this.updateRegionsFromREST(), 10000);
+            return;
         }
         this.regions = newRegions;
-        const regionsToRemove = this.currentRegions.filter(r => !newRegions.find(nr => nr.id === r.id));
-        const regionsToAdd = newRegions.filter(r => !this.currentRegions.find(nr => nr.id === r.id));
+        this.recalculateRegions();
+    }
+
+    private async recalculateRegions() {
+        const regionsToRemove = this.currentRegions.filter(r => !this.regions.find(nr => nr.id === r.id));
+        const regionsToAdd = this.regions.filter(r => !this.currentRegions.find(nr => nr.id === r.id));
 
         for (const region of regionsToRemove) {
             const connection = this.connections.find(c => c.regionId === region.id);
             if (connection) {
-                await connection.remove();
+                await connection.destroy();
                 this.connections = this.connections.filter(c => c.regionId !== region.id);
             }
             this.currentRegions = this.currentRegions.filter(r => r.id !== region.id);
@@ -69,23 +100,39 @@ export class CloudClient extends (EventEmitter as { new(): StrictEventEmitter<Ev
         }
 
         for (const region of regionsToAdd) {
-            this.connections.push(new CloudConnection(region.id, region.hostname, this.companionId));
-            this.currentRegions.push(region);
+            const newConnection = new CloudConnection(region.id, region.hostname, this.companionId);
+            this.connections = [ ...this.connections, newConnection ];
+            this.currentRegions = [ ...this.currentRegions, region ];
 
-            void this.connections[this.connections.length - 1].init();
+            newConnection.on('socketstate', (state) => {
+                console.log("DEBUG; Region %o changed state to %o", region.id, state);
+                this.calculateState()
+            });
+
+            void newConnection.init();
             this.emit('log', 'info', `Region ${region.label} added`);
         }
     }
 
-    async init() {
-        await this.recalculateRegions();
-    }
-
-    async fetchRegionsFor(companionId: string) {
+    private async fetchRegionsFor(companionId: string) {
         if (this.counter++ === 1) {
             return [];
         }
         try {
+            return [
+                {
+                    id: 'eu-north-no1',
+                    hostname: 'no-oslo-cloud1-staging.bitfocus.io',
+                    location: 'NO',
+                    label: 'Norway'
+                },
+                {
+                    id: 'eu-north-no2',
+                    hostname: 'no-oslo-cloud1-staging.bitfocus.io',
+                    location: 'NO',
+                    label: 'Norway 2'
+                }
+            ]
             return (await this.axios.get(`/infrastructure/companion/${companionId}/regions`)).data as {
                 id: string;
                 hostname: string;
@@ -97,20 +144,25 @@ export class CloudClient extends (EventEmitter as { new(): StrictEventEmitter<Ev
         }
     }
 
+    /**
+     * Initializes the connection to the cloud
+     */
+    async init() {
+        await this.updateRegionsFromREST();
+    }
+
     connect() {
     }
 }
 
-const test = new CloudClient('test');
+const test = new CloudClient('111-222-333-444');
+
 test.on("state", (state, message) => {
     console.log({state, message});
 });
+
 test.on("log", (level, message) => {
     console.log({level, message});
 });
-test.init().then(() => {
-    console.log("done1");
-    test.init().then(() => {
-        console.log("done2");
-    });
-});
+
+test.init();
