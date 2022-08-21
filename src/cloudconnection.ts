@@ -9,10 +9,10 @@ interface CloudConnectionEvents {
 }
 
 export class CloudConnection extends (EventEmitter as { new(): StrictEventEmitter<EventEmitter, CloudConnectionEvents> }) {
-    private socket: AGClientSocket;
     private companionId: string;
     private hostname: string;
 
+    public socket: AGClientSocket;
     public connectionState: SocketStates = "DISCONNECTED";    
     public regionId: string;
 
