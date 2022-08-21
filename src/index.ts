@@ -150,59 +150,59 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 		}
 	}
 
-    async clientCommand(name: string, ...args: any[]) {
-        const callerId = crypto.randomUUID()
-        const replyChannel = 'companionProcResult:' + callerId
-    
-        return new Promise((resolve, reject) => {
-            const timer = setTimeout(() => {
-                reject(new Error('ClientCommand timeout'))
-                this.connections
-                    .filter((connection) => connection.connectionState === 'CONNECTED')
-                    .forEach((connection) => {
-                        connection.socket.unsubscribe(replyChannel)
-                        connection.socket.closeChannel(replyChannel)
-                    })
-            }, 10000)
-    
-            let isHandeled = false
-            this.connections
-                .filter((connection) => connection.connectionState === 'CONNECTED')
-                .forEach((connection) => {
-                    const socket = connection.socket
-                    ;(async () => {
-                        for await (let data of socket.subscribe(replyChannel)) {
-                            if (isHandeled) {
-                                socket.unsubscribe(replyChannel)
-                                socket.closeChannel(replyChannel)
-                                return
-                            }
-    
-                            console.log('DEBUG; Got response for command %o', this.companionId + ':' + name)
-                            clearTimeout(timer)
-                            isHandeled = true
-    
-                            if (data.error) {
-                                reject(new Error('rpc error: ' + data.error))
-                            } else {
-                                resolve(data.result)
-                            }
-    
-                            socket.unsubscribe(replyChannel)
-                            socket.closeChannel(replyChannel)
-                            break
-                        }
-                    })()
-    
-                    console.log(
-                        'DEBUG; Sending command to %o: %o',
-                        connection.regionId,
-                        `companionProc:${this.companionId}:${name}`
-                    )
-                    socket.transmitPublish(`companionProc:${this.companionId}:${name}`, { args, callerId })
-                })
-        })
-    }
+	async clientCommand(name: string, ...args: any[]) {
+		const callerId = crypto.randomUUID()
+		const replyChannel = 'companionProcResult:' + callerId
+
+		return new Promise((resolve, reject) => {
+			const timer = setTimeout(() => {
+				reject(new Error('ClientCommand timeout'))
+				this.connections
+					.filter((connection) => connection.connectionState === 'CONNECTED')
+					.forEach((connection) => {
+						connection.socket.unsubscribe(replyChannel)
+						connection.socket.closeChannel(replyChannel)
+					})
+			}, 10000)
+
+			let isHandeled = false
+			this.connections
+				.filter((connection) => connection.connectionState === 'CONNECTED')
+				.forEach((connection) => {
+					const socket = connection.socket
+					;(async () => {
+						for await (let data of socket.subscribe(replyChannel)) {
+							if (isHandeled) {
+								socket.unsubscribe(replyChannel)
+								socket.closeChannel(replyChannel)
+								return
+							}
+
+							console.log('DEBUG; Got response for command %o', this.companionId + ':' + name)
+							clearTimeout(timer)
+							isHandeled = true
+
+							if (data.error) {
+								reject(new Error('rpc error: ' + data.error))
+							} else {
+								resolve(data.result)
+							}
+
+							socket.unsubscribe(replyChannel)
+							socket.closeChannel(replyChannel)
+							break
+						}
+					})()
+
+					console.log(
+						'DEBUG; Sending command to %o: %o',
+						connection.regionId,
+						`companionProc:${this.companionId}:${name}`
+					)
+					socket.transmitPublish(`companionProc:${this.companionId}:${name}`, { args, callerId })
+				})
+		})
+	}
 
 	/**
 	 * Initializes the connection to the cloud
@@ -219,9 +219,9 @@ const test = new CloudClient('111-222-333-444')
 test.on('state', (state, message) => {
 	console.log({ state, message })
 
-    if (state === 'OK') {
-        test.clientCommand('refresh').then(console.log).catch(console.error)
-    }
+	if (state === 'OK') {
+		test.clientCommand('refresh').then(console.log).catch(console.error)
+	}
 })
 
 test.on('log', (level, message) => {
