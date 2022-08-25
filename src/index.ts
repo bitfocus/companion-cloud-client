@@ -7,6 +7,8 @@ import * as crypto from 'crypto'
 const CLOUD_URL =
 	process.env.NODE_ENV === 'production' ? 'https://api.bitfocus.io/v1' : 'https://api-staging.bitfocus.io/v1'
 
+const COMPANION_PING_TIMEOUT = 5000;
+
 export type RegionDefinition = {
 	id: string
 	hostname: string
@@ -43,6 +45,7 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 	})
 	private counter = 0
 	private moduleState: ModuleState = 'IDLE'
+	private pingTimer: NodeJS.Timer | undefined
 
 	/**
 	 * Creates a new CloudClient
@@ -55,8 +58,10 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 	}
 
 	private setState(state: ModuleState, message?: string) {
-		this.moduleState = state
-		this.emit('state', state, message)
+		if (state !== this.moduleState) {
+			this.moduleState = state
+			this.emit('state', state, message)
+		}
 	}
 
 	private calculateState() {
@@ -65,6 +70,8 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 		//const disconnected = this.connections.filter(c => c.connectionState === 'DISCONNECTED').length;
 		const wants = this.regions.length
 
+		/*
+		 this code is commented because we want to know if we reach the remote companion, not if we are connected to all the regions
 		if (connected >= wants) {
 			this.setState('OK') // TODO: only if remote companion is also OK
 		} else if (connected + connecting === 0) {
@@ -73,6 +80,10 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 			this.setState('ERROR', 'No connections established')
 		} else if (connected < wants) {
 			this.setState('WARNING', `Only ${connected} of ${wants} connections established`)
+		}*/
+		if (wants > 0 && connected === 0) {
+			this.setState('ERROR', 'No relevant regions are reachable')
+			this.emit('log', 'error', 'No relevant regions are reachable, check your internet connection')
 		}
 	}
 
@@ -128,13 +139,13 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 			return [
 				{
 					id: 'eu-north-no1',
-					hostname: 'no-oslo-cloud1-staging.bitfocus.io',
+					hostname: 'no-oslo-cloud1.bitfocus.io',
 					location: 'NO',
 					label: 'Norway',
 				},
 				{
 					id: 'eu-north-no2',
-					hostname: 'no-oslo-cloud1-staging.bitfocus.io',
+					hostname: 'no-oslo-cloud1.bitfocus.io',
 					location: 'NO',
 					label: 'Norway 2',
 				},
@@ -147,6 +158,53 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 			}[]
 		} catch (e) {
 			return []
+		}
+	}
+
+	/**
+	 * pinging is sent individually, and counted up, in contrast to clientCommand
+	 */
+	async pingCompanion() {
+		const onlineConnections = this.connections
+		.filter((connection) => connection.connectionState === 'CONNECTED');
+	
+		const allThePromises = onlineConnections.map((connection) => {
+			return new Promise((resolve, reject) => {
+				const callerId = crypto.randomUUID()
+				const replyChannel = 'companionProcResult:' + callerId
+		
+				const timeout = setTimeout(() => {
+					connection.socket.unsubscribe(replyChannel)
+					connection.socket.closeChannel(replyChannel)
+					reject(new Error('Timeout'))
+				}, COMPANION_PING_TIMEOUT);
+
+				(async () => {
+					for await (let data of connection.socket.subscribe(replyChannel)) {
+						console.log('DEBUG: Got reply from companion', data)
+						connection.socket.unsubscribe(replyChannel)
+						connection.socket.closeChannel(replyChannel)
+						clearTimeout(timeout)
+						resolve(true)
+					}
+				})();
+
+				connection.socket.transmitPublish(`companionProc:${this.companionId}:ping`, { args: [], callerId })
+			})
+		});
+
+		const result = await Promise.allSettled(allThePromises);
+		const success = result.filter((r) => r.status === 'fulfilled').length;
+		const failed = result.filter((r) => r.status === 'rejected').length;
+
+		if (success === 0) {
+			this.setState("ERROR", "Remote companion is unreachable");
+			this.emit('log', 'error', `Remote companion is unreachable via its ${onlineConnections.length} region connection${onlineConnections.length !== 1 ? 's' : ''}`);
+		} else if (failed > 0) {
+			this.setState("WARNING", `Remote companion is unreachable through some regions`);
+			this.emit('log', 'warning', `Remote companion is only reachable on ${success} of ${onlineConnections.length} regions`);
+		} else if (success === onlineConnections.length) {
+			this.setState("OK");
 		}
 	}
 
@@ -208,13 +266,31 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 	 * Initializes the connection to the cloud
 	 */
 	async init() {
+		this.pingTimer = setInterval(() => {
+			this.pingCompanion();
+		}, COMPANION_PING_TIMEOUT + 2000);
+
 		await this.updateRegionsFromREST()
+	}
+
+	/**
+	 * Destroys running timers and connections
+	 */
+	destroy() {
+		if (this.pingTimer) {
+			clearInterval(this.pingTimer)
+		}
+		this.connections.forEach((connection) => {
+			connection.destroy()
+		})
+		this.connections = []
+		this.regions = []
 	}
 
 	connect() {}
 }
 
-const test = new CloudClient('111-222-333-444')
+const test = new CloudClient('d84d2efe-8943-580c-8a8e-c98742043fa9')
 
 test.on('state', (state, message) => {
 	console.log({ state, message })

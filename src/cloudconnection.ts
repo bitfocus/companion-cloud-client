@@ -3,6 +3,9 @@ import StrictEventEmitter from 'strict-event-emitter-types'
 import { EventEmitter } from 'events'
 export type SocketStates = 'DISCONNECTED' | 'CONNECTING' | 'CONNECTED'
 
+let str_LOCAL_CLOUD_PORT = (process.env.LOCAL_CLOUD_PORT || process.env.REACT_LOCAL_CLOUD_PORT)
+const LOCAL_CLOUD_PORT = str_LOCAL_CLOUD_PORT !== undefined ? parseInt(str_LOCAL_CLOUD_PORT) : 8000;
+
 interface CloudConnectionEvents {
 	socketstate: (state: SocketStates) => void
 	error: (error: Error) => void
@@ -13,6 +16,7 @@ export class CloudConnection extends (EventEmitter as {
 }) {
 	private companionId: string
 	private hostname: string
+	private alive: boolean
 
 	public socket: AGClientSocket
 	public connectionState: SocketStates = 'DISCONNECTED'
@@ -29,10 +33,11 @@ export class CloudConnection extends (EventEmitter as {
 	 * Initializes the connection to the cloud
 	 */
 	async init() {
+		this.alive = true;
 		this.socket = createSocket({
 			hostname: this.hostname,
-			//port: region.hostname.match(/^127\./) ? '443,
-			secure: true,
+			port: !this.hostname.match(/^(127\.|localhost)/) ? 443 : LOCAL_CLOUD_PORT,
+			secure: !this.hostname.match(/^(127\.|localhost)/),
 			autoReconnectOptions: {
 				initialDelay: 1000, //milliseconds
 				randomness: 2000, //milliseconds
@@ -46,20 +51,24 @@ export class CloudConnection extends (EventEmitter as {
 		this.socket.connect()
 
 		;(async () => {
-			for await (const event of this.socket?.listener('connect') || []) {
-				console.log('Connected ' + this.socket?.id)
-				this.connectionState = 'CONNECTED'
-				this.emit('socketstate', this.connectionState)
+			while (this.alive) {
+				for await (const event of this.socket?.listener('connect') || []) {
+					console.log('Connected ' + this.socket?.id)
+					this.connectionState = 'CONNECTED'
+					this.emit('socketstate', this.connectionState)
+				}
 			}
 		})()
 	}
 
 	initHandlers() {
 		;(async () => {
-			for await (const event of this.socket?.listener('disconnect') || []) {
-				console.log('Disconnected ' + this.socket?.id)
-				this.connectionState = 'DISCONNECTED'
-				this.emit('socketstate', this.connectionState)
+			while (this.alive) {
+				for await (const event of this.socket?.listener('disconnect') || []) {
+					console.log('Disconnected ' + this.socket?.id)
+					this.connectionState = 'DISCONNECTED'
+					this.emit('socketstate', this.connectionState)
+				}
 			}
 		})()
 	}
@@ -70,6 +79,12 @@ export class CloudConnection extends (EventEmitter as {
 	 * NB: Never use this object again after calling this method
 	 */
 	async destroy() {
+		// Stop event handler loops
+		this.alive = false;
+
+		// Kill it with fire
+		this.socket.killAllChannels()
+		this.socket.killAllListeners()
 		this.socket.disconnect()
 
 		// sorry, I don't want to have socket as a optional property
