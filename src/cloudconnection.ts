@@ -6,9 +6,20 @@ export type SocketStates = 'DISCONNECTED' | 'CONNECTING' | 'CONNECTED'
 let str_LOCAL_CLOUD_PORT = (process.env.LOCAL_CLOUD_PORT || process.env.REACT_LOCAL_CLOUD_PORT)
 const LOCAL_CLOUD_PORT = str_LOCAL_CLOUD_PORT !== undefined ? parseInt(str_LOCAL_CLOUD_PORT) : 8000;
 
+type SingleBank = {
+	page: number;
+	bank: number;
+	data: {
+		text: string;
+		[key: string]: any;
+	}
+};
+
 interface CloudConnectionEvents {
 	socketstate: (state: SocketStates) => void
 	error: (error: Error) => void
+	bank: (bank: SingleBank & { updateId: string }) => void
+	banks: (banks: { updateId: string, data: SingleBank[][] }) => void
 }
 
 export class CloudConnection extends (EventEmitter as {
@@ -49,7 +60,10 @@ export class CloudConnection extends (EventEmitter as {
 		this.connectionState = 'CONNECTING'
 		this.emit('socketstate', this.connectionState)
 		this.socket.connect()
+		this.initHandlers();
+	}
 
+	initHandlers() {
 		;(async () => {
 			while (this.alive) {
 				for await (const event of this.socket?.listener('connect') || []) {
@@ -59,9 +73,6 @@ export class CloudConnection extends (EventEmitter as {
 				}
 			}
 		})()
-	}
-
-	initHandlers() {
 		;(async () => {
 			while (this.alive) {
 				for await (const event of this.socket?.listener('disconnect') || []) {
@@ -70,7 +81,27 @@ export class CloudConnection extends (EventEmitter as {
 					this.emit('socketstate', this.connectionState)
 				}
 			}
-		})()
+		})();
+		(async () => {
+			while (this.alive) {
+				for await (const event of this.socket?.listener('error') || []) {
+					console.log('Error ' + this.socket?.id, event)
+					this.connectionState = 'DISCONNECTED'
+					this.emit('socketstate', this.connectionState)
+				}
+			}
+		})();
+		(async () => {
+			while (this.alive) {
+				for await (let data of this.socket?.subscribe('companion-banks:' + this.companionId)) {
+					if (data.type === 'single') {
+						this.emit('bank', data as SingleBank & { updateId: string });
+					} else {
+						this.emit('banks', data as { updateId: string, data: SingleBank[][] });
+					}
+				}
+			}
+		})();
 	}
 
 	/**

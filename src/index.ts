@@ -46,6 +46,7 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 	private counter = 0
 	private moduleState: ModuleState = 'IDLE'
 	private pingTimer: NodeJS.Timer | undefined
+	private updateIds: { [key: string]: number } = {}
 
 	/**
 	 * Creates a new CloudClient
@@ -125,6 +126,18 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 				console.log('DEBUG; Region %o changed state to %o', region.id, state)
 				this.calculateState()
 			})
+			
+			newConnection.on('banks', (banks) => {
+				if (this.updateIds[banks.updateId]) return;
+				console.log("All the banks: ", banks);
+				this.updateIds[banks.updateId] = Date.now();
+			});
+
+			newConnection.on('bank', (bank) => {
+				if (this.updateIds[bank.updateId]) return;
+				console.log("bank:", bank.data.text)
+				this.updateIds[bank.updateId] = Date.now();
+			});
 
 			void newConnection.init()
 			this.emit('log', 'info', `Region ${region.label} added`)
@@ -214,13 +227,13 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 
 		return new Promise((resolve, reject) => {
 			const timer = setTimeout(() => {
-				reject(new Error('ClientCommand timeout'))
 				this.connections
 					.filter((connection) => connection.connectionState === 'CONNECTED')
 					.forEach((connection) => {
 						connection.socket.unsubscribe(replyChannel)
 						connection.socket.closeChannel(replyChannel)
 					})
+				reject(new Error('ClientCommand timeout'))
 			}, 10000)
 
 			let isHandeled = false
@@ -268,6 +281,13 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 	async init() {
 		this.pingTimer = setInterval(() => {
 			this.pingCompanion();
+
+			// Cleanup update ids
+			for (let key in this.updateIds) {
+				if (Date.now() - this.updateIds[key] >= 30000) {
+					delete this.updateIds[key]
+				}
+			}
 		}, COMPANION_PING_TIMEOUT + 2000);
 
 		await this.updateRegionsFromREST()
@@ -296,7 +316,7 @@ test.on('state', (state, message) => {
 	console.log({ state, message })
 
 	if (state === 'OK') {
-		test.clientCommand('refresh').then(console.log).catch(console.error)
+		test.clientCommand('refresh').then(console.log).catch((err) => console.error("Handeled err:", err))
 	}
 })
 
