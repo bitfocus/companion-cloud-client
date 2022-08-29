@@ -145,9 +145,7 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 	}
 
 	private async fetchRegionsFor(companionId: string) {
-		if (this.counter++ === 1) {
-			return []
-		}
+		if (this.counter++ < 2) return [];
 		try {
 			return [
 				{
@@ -210,13 +208,13 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 		const success = result.filter((r) => r.status === 'fulfilled').length;
 		const failed = result.filter((r) => r.status === 'rejected').length;
 
-		if (success === 0) {
+		if (success === 0 && this.regions.length > 0) {
 			this.setState("ERROR", "Remote companion is unreachable");
-			this.emit('log', 'error', `Remote companion is unreachable via its ${onlineConnections.length} region connection${onlineConnections.length !== 1 ? 's' : ''}`);
+			this.emit('log', 'error', `Remote companion is unreachable via its ${this.regions.length} region connection${this.regions.length !== 1 ? 's' : ''}`);
 		} else if (failed > 0) {
 			this.setState("WARNING", `Remote companion is unreachable through some regions`);
 			this.emit('log', 'warning', `Remote companion is only reachable on ${success} of ${onlineConnections.length} regions`);
-		} else if (success === onlineConnections.length) {
+		} else if (success === onlineConnections.length && onlineConnections.length > 0) {
 			this.setState("OK");
 		}
 	}
