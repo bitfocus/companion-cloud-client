@@ -139,6 +139,11 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 				this.updateIds[bank.updateId] = Date.now();
 			});
 
+			newConnection.on('regions', (regions) => {
+				console.log("New regions: ", regions);
+				console.log("Old regions: ", this.regions);
+			});
+
 			void newConnection.init()
 			this.emit('log', 'info', `Region ${region.label} added`)
 		}

@@ -15,11 +15,17 @@ type SingleBank = {
 	}
 };
 
+type RegionDetails = {
+	id: string;
+	host: string;
+};
+
 interface CloudConnectionEvents {
 	socketstate: (state: SocketStates) => void
 	error: (error: Error) => void
 	bank: (bank: SingleBank & { updateId: string }) => void
 	banks: (banks: { updateId: string, data: SingleBank[][] }) => void
+	regions: (regions: RegionDetails[]) => void
 }
 
 export class CloudConnection extends (EventEmitter as {
@@ -99,6 +105,13 @@ export class CloudConnection extends (EventEmitter as {
 					} else {
 						this.emit('banks', data as { updateId: string, data: SingleBank[][] });
 					}
+				}
+			}
+		})();
+		(async () => {
+			while (this.alive) {
+				for await (let data of this.socket?.subscribe('companion-regions:' + this.companionId)) {
+					this.emit('regions', data as RegionDetails[] & { updateId: string });
 				}
 			}
 		})();
