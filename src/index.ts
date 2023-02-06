@@ -3,11 +3,12 @@ import axios from 'axios'
 import StrictEventEmitter from 'strict-event-emitter-types'
 import { EventEmitter } from 'events'
 import * as crypto from 'crypto'
+import { CompanionButtonStyleProps, MultiBank } from './types'
 
 const CLOUD_URL =
 	process.env.NODE_ENV === 'production' ? 'https://api.bitfocus.io/v1' : 'https://api-staging.bitfocus.io/v1'
 
-const COMPANION_PING_TIMEOUT = 5000;
+const COMPANION_PING_TIMEOUT = 5000
 
 export type RegionDefinition = {
 	id: string
@@ -23,11 +24,15 @@ class RegionFetchException extends Error {
 	}
 }
 
-export type ModuleState = 'IDLE' | 'WARNING' | 'ERROR' | 'OK'
+export type CCModuleState = 'IDLE' | 'WARNING' | 'ERROR' | 'OK'
+export type CCLogLevel = 'error' | 'warning' | 'info' | 'debug'
+
 interface CloudClientEvents {
-	state: (state: ModuleState, message?: string) => void
+	state: (state: CCModuleState, message?: string) => void
 	error: (error: Error) => void
-	log: (level: string, message: string) => void
+	log: (level: CCLogLevel, message: string) => void
+	update: (page: number, bank: number, data: CompanionButtonStyleProps) => void
+	updateAll: (banks: { page: number; bank: number; data: CompanionButtonStyleProps }[]) => void
 }
 
 /**
@@ -44,7 +49,7 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 		timeout: 10000,
 	})
 	private counter = 0
-	private moduleState: ModuleState = 'IDLE'
+	private moduleState: CCModuleState = 'IDLE'
 	private pingTimer: NodeJS.Timer | undefined
 	private updateIds: { [key: string]: number } = {}
 
@@ -58,7 +63,7 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 		this.companionId = remoteCompanionId
 	}
 
-	private setState(state: ModuleState, message?: string) {
+	private setState(state: CCModuleState, message?: string) {
 		if (state !== this.moduleState) {
 			this.moduleState = state
 			this.emit('state', state, message)
@@ -126,23 +131,23 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 				console.log('DEBUG; Region %o changed state to %o', region.id, state)
 				this.calculateState()
 			})
-			
+
 			newConnection.on('banks', (banks) => {
-				if (this.updateIds[banks.updateId]) return;
-				console.log("All the banks: ", banks);
-				this.updateIds[banks.updateId] = Date.now();
-			});
+				if (this.updateIds[banks.updateId]) return
+				this.updateIds[banks.updateId] = Date.now()
+				this.emit('updateAll', banks.data as MultiBank)
+			})
 
 			newConnection.on('bank', (bank) => {
-				if (this.updateIds[bank.updateId]) return;
-				console.log("bank:", bank.data.text)
-				this.updateIds[bank.updateId] = Date.now();
-			});
+				if (this.updateIds[bank.updateId]) return
+				this.emit('update', bank.page, bank.bank, bank.data)
+				this.updateIds[bank.updateId] = Date.now()
+			})
 
 			newConnection.on('regions', (regions) => {
-				console.log("New regions: ", regions);
-				console.log("Old regions: ", this.regions);
-			});
+				console.log('New regions: ', regions)
+				console.log('Old regions: ', this.regions)
+			})
 
 			void newConnection.init()
 			this.emit('log', 'info', `Region ${region.label} added`)
@@ -150,7 +155,7 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 	}
 
 	private async fetchRegionsFor(companionId: string) {
-		if (this.counter++ < 2) return [];
+		//if (this.counter++ < 2) return []
 		try {
 			return [
 				{
@@ -181,46 +186,55 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 	 * pinging is sent individually, and counted up, in contrast to clientCommand
 	 */
 	async pingCompanion() {
-		const onlineConnections = this.connections
-		.filter((connection) => connection.connectionState === 'CONNECTED');
-	
+		const onlineConnections = this.connections.filter((connection) => connection.connectionState === 'CONNECTED')
+
 		const allThePromises = onlineConnections.map((connection) => {
 			return new Promise((resolve, reject) => {
 				const callerId = crypto.randomUUID()
 				const replyChannel = 'companionProcResult:' + callerId
-		
+
 				const timeout = setTimeout(() => {
 					connection.socket.unsubscribe(replyChannel)
 					connection.socket.closeChannel(replyChannel)
 					reject(new Error('Timeout'))
-				}, COMPANION_PING_TIMEOUT);
+				}, COMPANION_PING_TIMEOUT)
 
-				(async () => {
+				;(async () => {
 					for await (let data of connection.socket.subscribe(replyChannel)) {
-						console.log('DEBUG: Got reply from companion', data)
+						//console.log('DEBUG: Got reply from companion', data)
 						connection.socket.unsubscribe(replyChannel)
 						connection.socket.closeChannel(replyChannel)
 						clearTimeout(timeout)
 						resolve(true)
 					}
-				})();
+				})()
 
 				connection.socket.transmitPublish(`companionProc:${this.companionId}:ping`, { args: [], callerId })
 			})
-		});
+		})
 
-		const result = await Promise.allSettled(allThePromises);
-		const success = result.filter((r) => r.status === 'fulfilled').length;
-		const failed = result.filter((r) => r.status === 'rejected').length;
+		const result = await Promise.allSettled(allThePromises)
+		const success = result.filter((r) => r.status === 'fulfilled').length
+		const failed = result.filter((r) => r.status === 'rejected').length
 
 		if (success === 0 && this.regions.length > 0) {
-			this.setState("ERROR", "Remote companion is unreachable");
-			this.emit('log', 'error', `Remote companion is unreachable via its ${this.regions.length} region connection${this.regions.length !== 1 ? 's' : ''}`);
+			this.setState('ERROR', 'Remote companion is unreachable')
+			this.emit(
+				'log',
+				'error',
+				`Remote companion is unreachable via its ${this.regions.length} region connection${
+					this.regions.length !== 1 ? 's' : ''
+				}`
+			)
 		} else if (failed > 0) {
-			this.setState("WARNING", `Remote companion is unreachable through some regions`);
-			this.emit('log', 'warning', `Remote companion is only reachable on ${success} of ${onlineConnections.length} regions`);
+			this.setState('WARNING', `Remote companion is unreachable through some regions`)
+			this.emit(
+				'log',
+				'warning',
+				`Remote companion is only reachable on ${success} of ${onlineConnections.length} regions`
+			)
 		} else if (success === onlineConnections.length && onlineConnections.length > 0) {
-			this.setState("OK");
+			this.setState('OK')
 		}
 	}
 
@@ -252,7 +266,7 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 								return
 							}
 
-							console.log('DEBUG; Got response for command %o', this.companionId + ':' + name)
+//							console.log('DEBUG; Got response for command %o', this.companionId + ':' + name)
 							clearTimeout(timer)
 							isHandeled = true
 
@@ -267,12 +281,12 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 							break
 						}
 					})()
-
+/*
 					console.log(
 						'DEBUG; Sending command to %o: %o',
 						connection.regionId,
 						`companionProc:${this.companionId}:${name}`
-					)
+					)*/
 					socket.transmitPublish(`companionProc:${this.companionId}:${name}`, { args, callerId })
 				})
 		})
@@ -283,7 +297,7 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 	 */
 	async init() {
 		this.pingTimer = setInterval(() => {
-			this.pingCompanion();
+			this.pingCompanion()
 
 			// Cleanup update ids
 			for (let key in this.updateIds) {
@@ -291,7 +305,7 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 					delete this.updateIds[key]
 				}
 			}
-		}, COMPANION_PING_TIMEOUT + 2000);
+		}, COMPANION_PING_TIMEOUT + 2000)
 
 		await this.updateRegionsFromREST()
 	}
@@ -312,19 +326,3 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 
 	connect() {}
 }
-
-const test = new CloudClient('d84d2efe-8943-580c-8a8e-c98742043fa9')
-
-test.on('state', (state, message) => {
-	console.log({ state, message })
-
-	if (state === 'OK') {
-		test.clientCommand('refresh').then(console.log).catch((err) => console.error("Handeled err:", err))
-	}
-})
-
-test.on('log', (level, message) => {
-	console.log({ level, message })
-})
-
-test.init()
