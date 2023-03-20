@@ -51,6 +51,7 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 	private counter = 0
 	private moduleState: CCModuleState = 'IDLE'
 	private pingTimer: NodeJS.Timer | undefined
+	private checkConnectionTimer: NodeJS.Timer | undefined
 	private updateIds: { [key: string]: number } = {}
 
 	/**
@@ -101,7 +102,10 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 				'error',
 				'Remote companion does not seem to be registered with the cloud, retrying in 10 seconds'
 			)
-			setTimeout(() => this.updateRegionsFromREST(), 10000)
+			if (this.regions.length > 0) {
+				this.regions = newRegions
+				this.recalculateRegions()		
+			}
 			return
 		}
 		this.regions = newRegions
@@ -157,21 +161,7 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 	private async fetchRegionsFor(companionId: string) {
 		//if (this.counter++ < 2) return []
 		try {
-			return [
-				{
-					id: 'eu-north-no1',
-					hostname: 'no-oslo-cloud1.bitfocus.io',
-					location: 'NO',
-					label: 'Norway',
-				},
-				{
-					id: 'eu-north-no2',
-					hostname: 'no-oslo-cloud1.bitfocus.io',
-					location: 'NO',
-					label: 'Norway 2',
-				},
-			]
-			return (await this.axios.get(`/infrastructure/companion/${companionId}/regions`)).data as {
+			return (await this.axios.get(`/infrastructure/cloud/regions/companion/${companionId}`)).data as {
 				id: string
 				hostname: string
 				location: string
@@ -226,6 +216,8 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 					this.regions.length !== 1 ? 's' : ''
 				}`
 			)
+			// Rescan regions in case server has changed to a new region
+			this.updateRegionsFromREST()
 		} else if (failed > 0) {
 			this.setState('WARNING', `Remote companion is unreachable through some regions`)
 			this.emit(
@@ -307,6 +299,12 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 			}
 		}, COMPANION_PING_TIMEOUT + 2000)
 
+		this.checkConnectionTimer = setInterval(() => {
+			if (this.regions.length === 0) {
+				this.updateRegionsFromREST()
+			}
+		}, 10000);
+
 		await this.updateRegionsFromREST()
 	}
 
@@ -316,6 +314,9 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 	destroy() {
 		if (this.pingTimer) {
 			clearInterval(this.pingTimer)
+		}
+		if (this.checkConnectionTimer) {
+			clearInterval(this.checkConnectionTimer)
 		}
 		this.connections.forEach((connection) => {
 			connection.destroy()
