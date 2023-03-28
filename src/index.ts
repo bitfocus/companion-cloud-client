@@ -132,7 +132,7 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 			this.currentRegions = [...this.currentRegions, region]
 
 			newConnection.on('socketstate', (state) => {
-				console.log('DEBUG; Region %o changed state to %o', region.id, state)
+				//console.log('DEBUG; Region %o changed state to %o', region.id, state)
 				this.calculateState()
 			})
 
@@ -149,8 +149,8 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 			})
 
 			newConnection.on('regions', (regions) => {
-				console.log('New regions: ', regions)
-				console.log('Old regions: ', this.regions)
+				//console.log('New regions: ', regions)
+				//console.log('Old regions: ', this.regions)
 			})
 
 			void newConnection.init()
