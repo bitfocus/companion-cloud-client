@@ -216,8 +216,6 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 					this.regions.length !== 1 ? 's' : ''
 				}`
 			)
-			// Rescan regions in case server has changed to a new region
-			this.updateRegionsFromREST()
 		} else if (failed > 0) {
 			this.setState('WARNING', `Remote companion is unreachable through some regions`)
 			this.emit(
@@ -300,9 +298,7 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 		}, COMPANION_PING_TIMEOUT + 2000)
 
 		this.checkConnectionTimer = setInterval(() => {
-			if (this.regions.length === 0) {
-				this.updateRegionsFromREST()
-			}
+			this.updateRegionsFromREST()
 		}, 10000);
 
 		await this.updateRegionsFromREST()
