@@ -184,22 +184,22 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 				const replyChannel = 'companionProcResult:' + callerId
 
 				const timeout = setTimeout(() => {
-					connection.socket.unsubscribe(replyChannel)
-					connection.socket.closeChannel(replyChannel)
+					connection.socket?.unsubscribe(replyChannel)
+					connection.socket?.closeChannel(replyChannel)
 					reject(new Error('Timeout'))
 				}, COMPANION_PING_TIMEOUT)
 
 				;(async () => {
 					for await (let data of connection.socket.subscribe(replyChannel)) {
 						//console.log('DEBUG: Got reply from companion', data)
-						connection.socket.unsubscribe(replyChannel)
-						connection.socket.closeChannel(replyChannel)
+						connection.socket?.unsubscribe(replyChannel)
+						connection.socket?.closeChannel(replyChannel)
 						clearTimeout(timeout)
 						resolve(true)
 					}
 				})()
 
-				connection.socket.transmitPublish(`companionProc:${this.companionId}:ping`, { args: [], callerId })
+				connection.socket?.transmitPublish?.(`companionProc:${this.companionId}:ping`, { args: [], callerId })
 			})
 		})
 
@@ -237,8 +237,8 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 				this.connections
 					.filter((connection) => connection.connectionState === 'CONNECTED')
 					.forEach((connection) => {
-						connection.socket.unsubscribe(replyChannel)
-						connection.socket.closeChannel(replyChannel)
+						connection.socket?.unsubscribe(replyChannel)
+						connection.socket?.closeChannel(replyChannel)
 					})
 				reject(new Error('ClientCommand timeout'))
 			}, 10000)
@@ -249,10 +249,10 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 				.forEach((connection) => {
 					const socket = connection.socket
 					;(async () => {
-						for await (let data of socket.subscribe(replyChannel)) {
+						for await (let data of socket?.subscribe(replyChannel)) {
 							if (isHandeled) {
-								socket.unsubscribe(replyChannel)
-								socket.closeChannel(replyChannel)
+								socket?.unsubscribe(replyChannel)
+								socket?.closeChannel(replyChannel)
 								return
 							}
 
@@ -266,8 +266,8 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 								resolve(data.result)
 							}
 
-							socket.unsubscribe(replyChannel)
-							socket.closeChannel(replyChannel)
+							socket?.unsubscribe(replyChannel)
+							socket?.closeChannel(replyChannel)
 							break
 						}
 					})()
@@ -277,7 +277,7 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 						connection.regionId,
 						`companionProc:${this.companionId}:${name}`
 					)*/
-					socket.transmitPublish(`companionProc:${this.companionId}:${name}`, { args, callerId })
+					socket?.transmitPublish(`companionProc:${this.companionId}:${name}`, { args, callerId })
 				})
 		})
 	}
