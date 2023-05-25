@@ -9,6 +9,9 @@
     "release": "yarn build ; release-it"
   },
   "release-it": {
+    "hooks": {
+      "after:bump": "yarn run build"
+    },
     "github": {
       "release": false
     },
