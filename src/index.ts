@@ -1,7 +1,7 @@
 import { CloudConnection } from './cloudconnection'
 import axios from 'axios'
 import StrictEventEmitter from 'strict-event-emitter-types'
-import { EventEmitter } from 'events'
+import { EventEmitter } from './events'
 import { CompanionButtonStyleProps, MultiBank } from './types'
 
 const generateRandomUUID = () => {
