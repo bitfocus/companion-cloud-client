@@ -1,6 +1,6 @@
 import { AGClientSocket, create as createSocket } from 'socketcluster-client'
 import StrictEventEmitter from 'strict-event-emitter-types'
-import { EventEmitter } from 'events'
+import { EventEmitter } from './events'
 import { SingleBank, MultiBank } from './types'
 export type SocketStates = 'DISCONNECTED' | 'CONNECTING' | 'CONNECTED'
 

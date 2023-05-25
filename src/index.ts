@@ -2,8 +2,17 @@ import { CloudConnection } from './cloudconnection'
 import axios from 'axios'
 import StrictEventEmitter from 'strict-event-emitter-types'
 import { EventEmitter } from 'events'
-import * as crypto from 'crypto'
 import { CompanionButtonStyleProps, MultiBank } from './types'
+
+const generateRandomUUID = () => {
+	let d = new Date().getTime()
+
+	return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+		const r = ((d + Math.random() * 16) % 16) | 0
+		d = Math.floor(d / 16)
+		return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16)
+	})
+}
 
 const CLOUD_URL =
 	process.env.NODE_ENV === 'production' ? 'https://api.bitfocus.io/v1' : 'https://api-staging.bitfocus.io/v1'
@@ -180,7 +189,7 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 
 		const allThePromises = onlineConnections.map((connection) => {
 			return new Promise((resolve, reject) => {
-				const callerId = crypto.randomUUID()
+				const callerId = generateRandomUUID()
 				const replyChannel = 'companionProcResult:' + callerId
 
 				const timeout = setTimeout(() => {
@@ -229,7 +238,7 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 	}
 
 	async clientCommand(name: string, ...args: any[]) {
-		const callerId = crypto.randomUUID()
+		const callerId = generateRandomUUID()
 		const replyChannel = 'companionProcResult:' + callerId
 
 		return new Promise((resolve, reject) => {
