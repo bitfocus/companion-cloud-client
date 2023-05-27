@@ -32,7 +32,9 @@ export declare class CloudClient extends CloudClient_base {
     private regions;
     private axios;
     private counter;
+    private connectingCounter;
     private moduleState;
+    private checkingRegions;
     private pingTimer;
     private checkConnectionTimer;
     private updateIds;

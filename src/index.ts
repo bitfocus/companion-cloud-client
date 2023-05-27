@@ -4,6 +4,8 @@ import StrictEventEmitter from 'strict-event-emitter-types'
 import { EventEmitter } from './events'
 import { CompanionButtonStyleProps, MultiBank } from './types'
 
+// We don't use external modules for this or eventemitter, so that this module
+// can be used more easily for node/web/electron/react-native projects.
 const generateRandomUUID = () => {
 	let d = new Date().getTime()
 
@@ -58,7 +60,9 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 		timeout: 10000,
 	})
 	private counter = 0
+	private connectingCounter = 0
 	private moduleState: CCModuleState = 'IDLE'
+	private checkingRegions: boolean = false
 	private pingTimer: NodeJS.Timer | undefined
 	private checkConnectionTimer: NodeJS.Timer | undefined
 	private updateIds: { [key: string]: number } = {}
@@ -77,6 +81,7 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 		if (state !== this.moduleState) {
 			this.moduleState = state
 			this.emit('state', state, message)
+			this.connectingCounter = 0
 		}
 	}
 
@@ -97,14 +102,26 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 		} else if (connected < wants) {
 			this.setState('WARNING', `Only ${connected} of ${wants} connections established`)
 		}*/
-		if (wants > 0 && connected === 0) {
-			this.setState('ERROR', 'No relevant regions are reachable')
-			this.emit('log', 'error', 'No relevant regions are reachable, check your internet connection')
+		if (!this.checkingRegions && wants > 0 && connected === 0) {
+			if (this.connectingCounter++ > 3) {
+				console.log(this.checkingRegions, wants, connected);
+				this.setState('ERROR', 'No relevant regions are reachable')
+				this.emit('log', 'error', 'No relevant regions are reachable, check your internet connection')
+				this.connectingCounter = 0
+			}
+		}
+
+		// Make sure we test the connections immediately after we have connected to all regions
+		// to get a fast main state update
+		if (connected == wants) {
+			this.pingCompanion();
 		}
 	}
 
 	private async updateRegionsFromREST() {
+		this.checkingRegions = true
 		const newRegions = await this.fetchRegionsFor(this.companionId)
+		this.checkingRegions = false
 		if (newRegions.length === 0) {
 			this.emit(
 				'log',
@@ -306,6 +323,7 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 			}
 		}, COMPANION_PING_TIMEOUT + 2000)
 
+		this.setState('WARNING', 'Connecting to cloud')
 		this.checkConnectionTimer = setInterval(() => {
 			this.updateRegionsFromREST()
 		}, 10000);
