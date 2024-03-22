@@ -1,6 +1,6 @@
 import StrictEventEmitter from 'strict-event-emitter-types';
 import { EventEmitter } from './events';
-import { CompanionButtonStyleProps } from './types';
+import { CompanionButtonStyleProps, ControlLocation } from './types';
 export declare type RegionDefinition = {
     id: string;
     hostname: string;
@@ -13,10 +13,9 @@ interface CloudClientEvents {
     state: (state: CCModuleState, message?: string) => void;
     error: (error: Error) => void;
     log: (level: CCLogLevel, message: string) => void;
-    update: (page: number, bank: number, data: CompanionButtonStyleProps) => void;
+    update: (location: ControlLocation, data: CompanionButtonStyleProps) => void;
     updateAll: (banks: {
-        page: number;
-        bank: number;
+        location: ControlLocation;
         data: CompanionButtonStyleProps;
     }[]) => void;
 }
@@ -26,6 +25,7 @@ declare const CloudClient_base: new () => StrictEventEmitter<EventEmitter, Cloud
  * communicating with the companion server
  */
 export declare class CloudClient extends CloudClient_base {
+    private protocolVersion;
     private companionId;
     private connections;
     private currentRegions;

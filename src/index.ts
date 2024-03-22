@@ -2,7 +2,7 @@ import { CloudConnection } from './cloudconnection'
 import axios from 'axios'
 import StrictEventEmitter from 'strict-event-emitter-types'
 import { EventEmitter } from './events'
-import { CompanionButtonStyleProps, MultiBank } from './types'
+import { CompanionButtonStyleProps, ControlLocation, MultiBank } from './types'
 
 // We don't use external modules for this or eventemitter, so that this module
 // can be used more easily for node/web/electron/react-native projects.
@@ -10,7 +10,7 @@ const generateRandomUUID = () => {
 	let d = new Date().getTime()
 
 	return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-		const r = ((d + Math.random() * 16) % 16) | 0
+		const r = (d + Math.random() * 16) % 16 | 0
 		d = Math.floor(d / 16)
 		return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16)
 	})
@@ -42,8 +42,8 @@ interface CloudClientEvents {
 	state: (state: CCModuleState, message?: string) => void
 	error: (error: Error) => void
 	log: (level: CCLogLevel, message: string) => void
-	update: (page: number, bank: number, data: CompanionButtonStyleProps) => void
-	updateAll: (banks: { page: number; bank: number; data: CompanionButtonStyleProps }[]) => void
+	update: (location: ControlLocation, data: CompanionButtonStyleProps) => void
+	updateAll: (banks: { location: ControlLocation; data: CompanionButtonStyleProps }[]) => void
 }
 
 /**
@@ -51,6 +51,7 @@ interface CloudClientEvents {
  * communicating with the companion server
  */
 export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<EventEmitter, CloudClientEvents> }) {
+	private protocolVersion = 1
 	private companionId: string
 	private connections: CloudConnection[] = []
 	private currentRegions: RegionDefinition[] = []
@@ -104,7 +105,7 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 		}*/
 		if (!this.checkingRegions && wants > 0 && connected === 0) {
 			if (this.connectingCounter++ > 3) {
-				console.log(this.checkingRegions, wants, connected);
+				//console.log(this.checkingRegions, wants, connected)
 				this.setState('ERROR', 'No relevant regions are reachable')
 				this.emit('log', 'error', 'No relevant regions are reachable, check your internet connection')
 				this.connectingCounter = 0
@@ -114,7 +115,7 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 		// Make sure we test the connections immediately after we have connected to all regions
 		// to get a fast main state update
 		if (connected == wants) {
-			this.pingCompanion();
+			this.pingCompanion()
 		}
 	}
 
@@ -130,7 +131,7 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 			)
 			if (this.regions.length > 0) {
 				this.regions = newRegions
-				this.recalculateRegions()		
+				this.recalculateRegions()
 			}
 			return
 		}
@@ -165,12 +166,26 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 			newConnection.on('banks', (banks) => {
 				if (this.updateIds[banks.updateId]) return
 				this.updateIds[banks.updateId] = Date.now()
+
+				// In protocol v1+ we have location property
+				banks.data = banks.data.map((bank) => ({
+					...bank,
+					location:
+						bank.p >= 1 ? bank.location : { pageNumber: bank.page ?? 0, row: bank.bank ?? 0, column: 0 },
+				}))
 				this.emit('updateAll', banks.data as MultiBank)
 			})
 
 			newConnection.on('bank', (bank) => {
 				if (this.updateIds[bank.updateId]) return
-				this.emit('update', bank.page, bank.bank, bank.data)
+				if (!bank.p) {
+					bank.location = {
+						pageNumber: bank.page ?? 0,
+						row: bank.bank ?? 0,
+						column: 0,
+					}
+				}
+				this.emit('update', bank.location, bank.data)
 				this.updateIds[bank.updateId] = Date.now()
 			})
 
@@ -282,7 +297,7 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 								return
 							}
 
-//							console.log('DEBUG; Got response for command %o', this.companionId + ':' + name)
+							//							console.log('DEBUG; Got response for command %o', this.companionId + ':' + name)
 							clearTimeout(timer)
 							isHandeled = true
 
@@ -297,7 +312,7 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 							break
 						}
 					})()
-/*
+					/*
 					console.log(
 						'DEBUG; Sending command to %o: %o',
 						connection.regionId,
@@ -326,7 +341,7 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 		this.setState('WARNING', 'Connecting to cloud')
 		this.checkConnectionTimer = setInterval(() => {
 			this.updateRegionsFromREST()
-		}, 10000);
+		}, 10000)
 
 		await this.updateRegionsFromREST()
 	}

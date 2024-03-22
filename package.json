@@ -31,7 +31,7 @@
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^18.7.6",
-    "@types/socketcluster-client": "^16.0.0",
+    "@types/socketcluster-client": "^19.1.0",
     "release-it": "*",
     "strict-event-emitter-types": "^2.0.0",
     "ts-node": "^10.9.1",
@@ -39,6 +39,6 @@
   },
   "dependencies": {
     "axios": "^1.6.0",
-    "socketcluster-client": "^16.1.1"
+    "socketcluster-client": "^19.1.0"
   }
 }

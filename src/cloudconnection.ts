@@ -92,7 +92,7 @@ export class CloudConnection extends (EventEmitter as {
 					if (data.type === 'single') {
 						this.emit('bank', data as SingleBank & { updateId: string })
 					} else if (data.type === 'all') {
-						this.emit('banks', data as { updateId: string, data: MultiBank })
+						this.emit('banks', data as { updateId: string; data: MultiBank })
 					}
 				}
 			}
