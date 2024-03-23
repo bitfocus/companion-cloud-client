@@ -309,54 +309,61 @@ __metadata:
   linkType: hard
 
 "@types/ag-auth@npm:*":
-  version: 1.0.0
-  resolution: "@types/ag-auth@npm:1.0.0"
+  version: 1.0.3
+  resolution: "@types/ag-auth@npm:1.0.3"
   dependencies:
     "@types/jsonwebtoken": "npm:*"
-  checksum: 10c0/e867a966eb02220a46528d872f7b24738e4dac3e28a395cc5807363e0e4f54da7355c14c3ca267b0ce95b2fb88dd296b80028e38b4d33d1696bb9cb67346d574
+  checksum: 10c0/cc0a0fe533e36db72e9adf583bd5ac90a348a6f3612650df5b0b1151796342b55175eb5e36f14a6e39e44c389629ad9b6705cb8ebd8515a9c765eb9c81e51aa0
   languageName: node
   linkType: hard
 
 "@types/ag-channel@npm:*":
-  version: 5.0.0
-  resolution: "@types/ag-channel@npm:5.0.0"
+  version: 5.0.3
+  resolution: "@types/ag-channel@npm:5.0.3"
   dependencies:
     "@types/consumable-stream": "npm:*"
     "@types/stream-demux": "npm:*"
     "@types/writable-consumable-stream": "npm:*"
-  checksum: 10c0/3d9c6bb72a05057820c1b71102b44d569ce0d1575bf2f8879835e941a8c490fb5c1f307bcf9a434e4ea8d6b113491800344ff6ab3e49b0d1677c5c3a715d2c6e
+  checksum: 10c0/af3802b09dfb370058d17f0c815eb6ec63098da8218c8e561f10a85ffb55b993103b30ea0530cd8caf96adc12d8ad19ed28470bd9b41853b99f90f33eddd7af9
+  languageName: node
+  linkType: hard
+
+"@types/ag-request@npm:*":
+  version: 1.0.0
+  resolution: "@types/ag-request@npm:1.0.0"
+  checksum: 10c0/367eff3f925420300a97321b0b228ebca29b76a0016886c4fa94e0b60c4b2d5b202b737033ec895e01581bced5459770dae40ed662fd2265c9298f9408fd3308
   languageName: node
   linkType: hard
 
 "@types/ag-simple-broker@npm:*":
-  version: 5.0.0
-  resolution: "@types/ag-simple-broker@npm:5.0.0"
+  version: 6.0.0
+  resolution: "@types/ag-simple-broker@npm:6.0.0"
   dependencies:
     "@types/ag-channel": "npm:*"
     "@types/async-stream-emitter": "npm:*"
     "@types/consumable-stream": "npm:*"
     "@types/socketcluster-server": "npm:*"
     "@types/writable-consumable-stream": "npm:*"
-  checksum: 10c0/afd66e7d39cd43f0c831e74bb340117f0795962f43fdd84423ee2a7c6d1d7cd8fa7b1c7a5329203ecc04b84f0ba62550ebea10c76f8dcf4f46c76dc79a69ec45
+  checksum: 10c0/813700a84f09e74763232ab04a13a2601319d01fedcc4b16c283f474cd8e27f665cccc19e916ca67302ef91e5987cea059e2284de499e602a1d42044473d42b6
   languageName: node
   linkType: hard
 
 "@types/async-stream-emitter@npm:*":
-  version: 4.0.0
-  resolution: "@types/async-stream-emitter@npm:4.0.0"
+  version: 7.0.0
+  resolution: "@types/async-stream-emitter@npm:7.0.0"
   dependencies:
     "@types/consumable-stream": "npm:*"
     "@types/writable-consumable-stream": "npm:*"
-  checksum: 10c0/e7b2514fcea9f9670d0c2e8f4ae51364859fb1495b4bec547c8c33cdb51ce5e1c7368840e1f61c331fcb7df7b911442a06bd30fe63f1753b08209a50e1f76271
+  checksum: 10c0/a3f64cd17d2307b261f868e767978920e0ffca0d68b3ca6e8ad3ff90821f2ef9acc49192e2a70b0ab92a4481f684404ca3789141f613d8ed798dcace8eb7e039
   languageName: node
   linkType: hard
 
 "@types/consumable-stream@npm:*":
-  version: 2.0.0
-  resolution: "@types/consumable-stream@npm:2.0.0"
+  version: 3.0.0
+  resolution: "@types/consumable-stream@npm:3.0.0"
   dependencies:
     "@types/node": "npm:*"
-  checksum: 10c0/6f8d79493f14a7f5358c37dc9d5683008eab5c4bec405f6f4031c9f8bcbe42027adcae10496d016ac10e019cde6444d9fb70445446adf692dccbdd1cc97a7f30
+  checksum: 10c0/9e0d7496f29468c45a33e6c428b63348f4307dcda3a88621cd1ed84f69f4d8bfcf644589ae6d02b5c16ef773b94893ceb9c5070deba7a8cf7833287015d51d0a
   languageName: node
   linkType: hard
 
@@ -368,25 +375,27 @@ __metadata:
   linkType: hard
 
 "@types/jsonwebtoken@npm:*":
-  version: 8.5.8
-  resolution: "@types/jsonwebtoken@npm:8.5.8"
+  version: 9.0.6
+  resolution: "@types/jsonwebtoken@npm:9.0.6"
   dependencies:
     "@types/node": "npm:*"
-  checksum: 10c0/78b614aa06cb83e6751680448b78daac36bc8f24f7f52b7922e01295ff4b6c2917973e9a359de4219fcc274813f3ae1edc864771dab6cb1de5b68ff8d3d5d611
+  checksum: 10c0/9c29e3896e5fb6056e54d87514643e59e0cfb966ae25171a107776270195bba955f0373e98c8ed6450c145b18984f5df9cf0fcac360f382cec3c7c4d3510b202
   languageName: node
   linkType: hard
 
-"@types/node@npm:*, @types/node@npm:^18.7.6":
-  version: 18.7.6
-  resolution: "@types/node@npm:18.7.6"
-  checksum: 10c0/eab4e2c362a266ad83b58ba0c44b146ce62b6a63c3133b957b3b408667048c09b50f47f2483e25d98f5d013da502d44df1b9d10442a921ab44951dcf0863cc55
+"@types/node@npm:*, @types/node@npm:^20.11.30":
+  version: 20.11.30
+  resolution: "@types/node@npm:20.11.30"
+  dependencies:
+    undici-types: "npm:~5.26.4"
+  checksum: 10c0/867cfaf969c6d8850d8d7304e7ab739898a50ecb1395b61ff2335644f5f48d7a46fbc4a14cee967aed65ec134b61a746edae70d1f32f11321ccf29165e3bc4e6
   languageName: node
   linkType: hard
 
 "@types/sc-errors@npm:*":
-  version: 1.4.1
-  resolution: "@types/sc-errors@npm:1.4.1"
-  checksum: 10c0/a28dec9f88b2d2f257db17e50cd6c0f2d236248bd88c38de38c1544a65778d5643b6b179b1741e2bd720f8363d3586731413a026af03ea1003cef3609a55da8e
+  version: 1.4.3
+  resolution: "@types/sc-errors@npm:1.4.3"
+  checksum: 10c0/afca95579a764c13cceb4911d0cfea9ddf67a620b9fe0d0354145ebaeb19d3dc7c1fd460bbab5e90ae5cea08c70a4224e218948cf1f4716737677b44bf77fb6e
   languageName: node
   linkType: hard
 
@@ -407,10 +416,11 @@ __metadata:
   linkType: hard
 
 "@types/socketcluster-server@npm:*":
-  version: 16.1.0
-  resolution: "@types/socketcluster-server@npm:16.1.0"
+  version: 19.0.1
+  resolution: "@types/socketcluster-server@npm:19.0.1"
   dependencies:
     "@types/ag-auth": "npm:*"
+    "@types/ag-request": "npm:*"
     "@types/ag-simple-broker": "npm:*"
     "@types/async-stream-emitter": "npm:*"
     "@types/consumable-stream": "npm:*"
@@ -419,35 +429,35 @@ __metadata:
     "@types/stream-demux": "npm:*"
     "@types/writable-consumable-stream": "npm:*"
     "@types/ws": "npm:*"
-  checksum: 10c0/621d79a8a688cefa3e0e5bfdb234b2f18bc3990df66171e2c75b38b05b65e1258bf0ab9462e066499218cd9939bb685cc943b40c0008d1392ceef6ec0bc16b83
+  checksum: 10c0/2e46d141a857f96c240775142cba838b0ac40e782c20acc30ee84ce9638b7f34e2ebec63393fc0cc010391d4da775eb69d4ea93f19d9e48773a5566cbb8d1679
   languageName: node
   linkType: hard
 
 "@types/stream-demux@npm:*":
-  version: 8.0.0
-  resolution: "@types/stream-demux@npm:8.0.0"
+  version: 10.0.0
+  resolution: "@types/stream-demux@npm:10.0.0"
   dependencies:
     "@types/consumable-stream": "npm:*"
     "@types/writable-consumable-stream": "npm:*"
-  checksum: 10c0/7177a8fc50a02ab2e1c4894bdcc6b9bb9a2016bad163f5d403fa04f4b38755379f657db4a053bf05c9d52747e654339a1b19d6ffe0092d952563219da16ee83b
+  checksum: 10c0/47e44bb279aa0831d1b679f4ab1400a67936ed9ae24f9cb05e7492ac4ca74bd359446e52961facffac9c71c5c2beb0a5d833549a48cbe587a5b3df1bcc75b54b
   languageName: node
   linkType: hard
 
 "@types/writable-consumable-stream@npm:*":
-  version: 2.0.0
-  resolution: "@types/writable-consumable-stream@npm:2.0.0"
+  version: 4.1.0
+  resolution: "@types/writable-consumable-stream@npm:4.1.0"
   dependencies:
     "@types/consumable-stream": "npm:*"
-  checksum: 10c0/79449516e5b323147215b190423c7c37b03d42d595990ff5fdf6df8ee48a11a1cdbc705e90d0cb2f27615231ed5b6a8f2639c6841f38334c33400ad18e8092e4
+  checksum: 10c0/033e8f3feb2e546a8c5e9f344fb57fe3c53a9fb1e2065992662ff60224203be06459b2a857359a120619c4b3057dd89dfb1b2cb3a31e4acb851b43cca2ca9c36
   languageName: node
   linkType: hard
 
 "@types/ws@npm:*":
-  version: 8.5.3
-  resolution: "@types/ws@npm:8.5.3"
+  version: 8.5.10
+  resolution: "@types/ws@npm:8.5.10"
   dependencies:
     "@types/node": "npm:*"
-  checksum: 10c0/af36857b804e6df615b401bacf34e9312f073ed9dbeda35be16ee3352d18a4449f27066169893166a6ec17ae51557c3adf8d232ac4a4a0226aafb3267e1f1b39
+  checksum: 10c0/e9af279b984c4a04ab53295a40aa95c3e9685f04888df5c6920860d1dd073fcc57c7bd33578a04b285b2c655a0b52258d34bee0a20569dca8defb8393e1e5d29
   languageName: node
   linkType: hard
 
@@ -924,7 +934,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "companion-cloud-client@workspace:."
   dependencies:
-    "@types/node": "npm:^18.7.6"
+    "@types/node": "npm:^20.11.30"
     "@types/socketcluster-client": "npm:^19.1.0"
     axios: "npm:^1.6.0"
     release-it: "npm:*"
@@ -3877,6 +3887,13 @@ __metadata:
     has-symbols: "npm:^1.0.3"
     which-boxed-primitive: "npm:^1.0.2"
   checksum: 10c0/81ca2e81134167cc8f75fa79fbcc8a94379d6c61de67090986a2273850989dd3bae8440c163121b77434b68263e34787a675cbdcb34bb2f764c6b9c843a11b66
+  languageName: node
+  linkType: hard
+
+"undici-types@npm:~5.26.4":
+  version: 5.26.5
+  resolution: "undici-types@npm:5.26.5"
+  checksum: 10c0/bb673d7876c2d411b6eb6c560e0c571eef4a01c1c19925175d16e3a30c4c428181fb8d7ae802a261f283e4166a0ac435e2f505743aa9e45d893f9a3df017b501
   languageName: node
   linkType: hard
 

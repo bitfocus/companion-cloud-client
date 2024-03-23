@@ -64,8 +64,8 @@ export class CloudClient extends (EventEmitter as { new (): StrictEventEmitter<E
 	private connectingCounter = 0
 	private moduleState: CCModuleState = 'IDLE'
 	private checkingRegions: boolean = false
-	private pingTimer: NodeJS.Timer | undefined
-	private checkConnectionTimer: NodeJS.Timer | undefined
+	private pingTimer: NodeJS.Timeout | undefined
+	private checkConnectionTimer: NodeJS.Timeout | undefined
 	private updateIds: { [key: string]: number } = {}
 
 	/**
